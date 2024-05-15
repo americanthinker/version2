@@ -6,7 +6,7 @@ from time import sleep
 from loguru import logger
 from src.llm.llm_interface import LLM
 from src.llm.prompt_templates import (context_block, question_answering_prompt_series, 
-                                      verbosity_options, huberman_system_message)
+                                      generate_prompt_series, verbosity_options, huberman_system_message)
 import streamlit as st  
 
 @st.cache_data
@@ -21,9 +21,9 @@ def convert_seconds(seconds: int) -> str:
     """
     return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
-def validate_token_threshold(ranked_results: list[dict], 
-                             base_prompt: str,
+def validate_token_threshold(ranked_results: list[dict],
                              query: str,
+                             system_message: str,
                              tokenizer: tiktoken.Encoding, 
                              token_threshold: int,
                              llm_verbosity_level: Literal[0, 1, 2]=0,
@@ -39,12 +39,14 @@ def validate_token_threshold(ranked_results: list[dict],
         combined prompt tokens are below the threshold. This function does not take into
         account every token passed to the LLM, but it is a good approximation.
         """
-        overhead_len = len(tokenizer.encode(base_prompt.format(question=query, series='', verbosity=str(llm_verbosity_level))))
-        context_len = _get_batch_length(ranked_results, tokenizer, content_field=content_field)
+        user_message = generate_prompt_series(query=query, results=ranked_results, verbosity_level=llm_verbosity_level)
+        user_len = len(tokenizer.encode(user_message))
+        system_len = len(tokenizer.encode(system_message))
+        # context_len = _get_batch_length(ranked_results, tokenizer, content_field=content_field)
     
-        token_count = overhead_len + context_len
+        token_count = user_len + system_len
         if token_count > token_threshold:
-            print('Token count exceeds token count threshold, reducing size of returned results below token threshold')
+            logger.info('Token count exceeds token count threshold, reducing size of returned results below token threshold')
             
             while token_count > token_threshold and len(ranked_results) > 1:
                 num_results = len(ranked_results)
@@ -52,7 +54,8 @@ def validate_token_threshold(ranked_results: list[dict],
                 # remove the last ranked (most irrelevant) result
                 ranked_results = ranked_results[:num_results-1]
                 # recalculate new token_count
-                token_count = overhead_len + _get_batch_length(ranked_results, tokenizer, content_field=content_field)
+                user_message = generate_prompt_series(query=query, results=ranked_results, verbosity_level=llm_verbosity_level)
+                token_count = len(tokenizer.encode(user_message)) + system_len
 
         if verbose:
             logger.info(f'Total Final Token Count: {token_count}')

@@ -14,7 +14,7 @@ from src.database.weaviate_interface_v4 import WeaviateWCS
 from src.database.database_utils import get_weaviate_client
 from src.llm.llm_interface import LLM
 from src.reranker import ReRanker
-from src.llm.prompt_templates import generate_prompt_series, huberman_system_message, question_answering_prompt_series
+from src.llm.prompt_templates import generate_prompt_series, huberman_system_message
 from app_functions import (convert_seconds, search_result, validate_token_threshold,
                            stream_chat, stream_json_chat, load_data)
 
@@ -77,19 +77,16 @@ def main(retriever: WeaviateWCS):
         guest_input = st.selectbox('Select Guest', options=guest_list,index=None, placeholder='Select Guest')
         alpha_input = st.slider('Alpha for Hybrid Search', 0.00, 1.00, 0.40, step=0.05)
         retrieval_limit = st.slider('Hybrid Search Retrieval Results', 10, 300, 10, step=10)
-        reranker_topk = st.slider('Reranker Top K', 1, 5, 3, step=1)
+        reranker_topk = st.slider('Reranker Top K', 1, 10, 3, step=1)
         temperature_input = st.slider('Temperature of LLM', 0.0, 2.0, 0.10, step=0.10)
         verbosity = st.slider('LLM Verbosity', 0, 2, 0, step=1)
-    
-    # if collection_name == 'Ada_data_256':
-    #     client = WeaviateClient(api_key, url, model_name_or_path='text-embedding-ada-002',openai_api_key=os.environ['OPENAI_API_KEY'])
         
     # retriever.return_properties.append('expanded_content')
 
     ##############################
     ##### SETUP MAIN DISPLAY #####
     ##############################
-    st.image('./assets/hlabs_logo.png', width=400)
+    st.image('./app_assets/hlabs_logo.png', width=400)
     st.subheader("Search with the Huberman Lab podcast:")
     st.write('\n')
     col1, _ = st.columns([7,3])
@@ -117,25 +114,24 @@ def main(retriever: WeaviateWCS):
                                             apply_sigmoid=True, 
                                             top_k=reranker_topk)
         # expanded_response = expand_content(ranked_response, cache, content_key='doc_id', create_new_list=True)
+        logger.info(f'RANKED: {len(ranked_response)}')
         
-        # validate token count is below threshold
-        token_threshold = 8000 #if model_name == model_ids[0] else 3500
+        token_threshold = 2500 # generally allows for 3-5 results of chunk_size 256
         content_field = 'content'
+        # validate token count is below threshold
         valid_response = validate_token_threshold(  ranked_response, 
-                                                    question_answering_prompt_series, 
                                                     query=query,
+                                                    system_message=huberman_system_message,
                                                     tokenizer=encoding,# variable from ENCODING,
+                                                    llm_verbosity_level=verbosity,
                                                     token_threshold=token_threshold, 
                                                     content_field=content_field,
                                                     verbose=True)
-        
+        logger.info(f'VALID RESPONSE: {len(valid_response)}')
         make_llm_call = True
         # prep for streaming response
-        st.subheader("Response from Impact Theory (context)")
         with st.spinner('Generating Response...'):
             st.markdown("----")
-            #creates container for LLM response
-            chat_container, response_box = [], st.empty()
                 
             ##############
             # START CODE #
@@ -144,7 +140,7 @@ def main(retriever: WeaviateWCS):
             prompt = generate_prompt_series(query=query, results=valid_response, verbosity_level=verbosity)
             json_mode = False
             if make_llm_call:
-                with st.chat_message('Huberman Labs', avatar='./assets/huberman_logo.png'):
+                with st.chat_message('Huberman Labs', avatar='./app_assets/huberman_logo.png'):
                     if json_mode:
                         st.write_stream(stream_json_chat(llm, prompt))
                     else:
