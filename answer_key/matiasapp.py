@@ -149,7 +149,7 @@ def main(retriever: WeaviateWCS):
                         st.write_stream(stream_json_chat(llm, prompt))
                     else:
                         stream_obj = stream_chat(llm, prompt, temperature=temperature_input)
-                        st.write(stream_obj)
+                        st.write_stream(stream_obj)
             string_completion = ' '.join([c for c in stream_obj])
             call_cost = completion_cost(completion=string_completion, 
                                         model=turbo, 
