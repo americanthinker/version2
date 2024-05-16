@@ -1,0 +1,1 @@
+{'n': 5, 'top_k': 5, 'alpha': 0.5, 'Retriever': '/home/elastic/notebooks/vectorsearch-applications/models/bge-base-finetuned/', 'Ranker': 'None', 'chunk_size': 512, 'query_props': ['content'], 'total_misses': 36, 'total_questions': 100, 'vector_hit_rate': 0.64, 'vector_mrr': 0.49}

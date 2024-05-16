@@ -1,0 +1,1 @@
+{'n': 5, 'top_k': 5, 'alpha': 0.5, 'Retriever': '../../models/bge-small-finetuned-256-couplets-2', 'Ranker': 'None', 'chunk_size': 256, 'query_props': ['content'], 'total_misses': 16, 'total_questions': 100, 'vector_hit_rate': 0.84, 'vector_mrr': 0.69}

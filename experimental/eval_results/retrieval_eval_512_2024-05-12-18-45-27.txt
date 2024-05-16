@@ -1,0 +1,1 @@
+{'n': 5, 'top_k': 5, 'alpha': 0.5, 'Retriever': 'BAAI/bge-base-en', 'Ranker': 'None', 'chunk_size': 512, 'query_props': ['content'], 'total_misses': 10, 'total_questions': 100, 'hybrid_hit_rate': 0.9, 'hybrid_mrr': 0.8}
