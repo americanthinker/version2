@@ -1,0 +1,4 @@
+*.ipynb
+*.parquet
+*.env
+*.txt
